@@ -44,8 +44,15 @@ terminal String  STRING_LITERAL;
 non terminal file;
 non terminal dataset;
 non terminal column;
-non terminal type;
+non terminal column_type;
 non terminal preparation;
+non terminal delete_column;
+non terminal expression;
+non terminal ex_constant;
+non terminal ex_ident;
+non terminal ex_function;
+non terminal ex_boolean;
+non terminal ex_arithmetic;
 
 file ::= 
     DATASET IDENT:id OPEN_KEY dataset CLOSE_KEY {: Eval.emitDatasetDecl(id.toString ()); :} 
@@ -58,11 +65,11 @@ dataset ::=
   ;
 
 column ::= 
-    IDENT COLON type
+    IDENT COLON column_type
     | IDENT COMMA column
   ;
 
-type ::=
+column_type ::=
     BOOLEAN
     | INT
     | FLOAT 
@@ -71,5 +78,49 @@ type ::=
   ;
 
 preparation ::=
+    | DELETE IF expression preparation
+    | DELETE COLUMN delete_column preparation
+    | FEATURE IDENT COLON expression preparation
+  ;
+
+delete_column ::= 
+    IDENT
+    | IDENT COMMA delete_column
+ ;
+
+expression ::= 
+    ex_constant
+    | ex_ident 
+    | ex_function
+    | ex_boolean
+    | ex_arithmetic
+    | FLOAT EQ
+  ;
+
+ex_constant ::=
+    TRUE
+    | FALSE
+    | TODAY
+    | DATE_LITERAL
+    | INT_LITERAL
+    | FLOAT_LITERAL
+    | STRING_LITERAL
+  ;
+
+ex_ident ::=
+    IDENT
+  ;
+
+ex_function ::=
+    IDENT OPEN_PAREN IDENT CLOSE_PAREN
+  ;
+
+ex_boolean ::=
+    NOT expression
+   // | expression AND expression
+   // | expression OR expression
+  ;
+
+ex_arithmetic ::=
 
   ;
