@@ -81,7 +81,7 @@ column_type ::=
 
 preparation ::=
     | DELETE IF expression {: Eval.emitDeleteIfCmd(); :} preparation
-    | DELETE COLUMN delete_column {: Eval.emitDeleteIfCmd(); :} preparation
+    | DELETE COLUMN delete_column {: Eval.emitDeleteColumnCmd(); :} preparation
     | FEATURE IDENT:name COLON expression {: Eval.emitFeature(name.toString()); :} preparation
   ;
 
