@@ -44,54 +44,32 @@ terminal String  STRING_LITERAL;
 non terminal file;
 non terminal dataset;
 non terminal column;
+non terminal type;
 non terminal preparation;
-non terminal delete_if;
-non terminal delete_column;
-non terminal feature;
 
 file ::= 
-    DATASET IDENT:id OPEN_KEY dataset CLOSE_KEY {: Eval.emitDatasetDecl(id.toString ()); :} | 
-    DATASET IDENT:id OPEN_KEY dataset CLOSE_KEY {: Eval.emitDatasetDecl(id.toString ()); :} file
+    DATASET IDENT:id OPEN_KEY dataset CLOSE_KEY {: Eval.emitDatasetDecl(id.toString ()); :} 
+    | DATASET IDENT:id OPEN_KEY dataset CLOSE_KEY {: Eval.emitDatasetDecl(id.toString ()); :} file
   ;
 
-
 dataset ::= 
-    |
-    PREPARATION OPEN_KEY preparation CLOSE_KEY {: Eval.emitPreparation(); :} |
-    COLUMN column {: Eval.emitColumnDecl(); :}  dataset 
+    | COLUMN column {: Eval.emitColumnDecl(); :} dataset
+    | PREPARATION OPEN_KEY preparation {: Eval.emitPreparation(); :} CLOSE_KEY
   ;
 
 column ::= 
-    IDENT COLON STRING |
-    IDENT COLON DATE |
-    IDENT COLON FLOAT |
-    IDENT COLON INT |
-    IDENT COLON BOOLEAN |
-    IDENT COMMA column
+    IDENT COLON type
+    | IDENT COMMA column
+  ;
+
+type ::=
+    BOOLEAN
+    | INT
+    | FLOAT 
+    | STRING
+    | DATE
   ;
 
 preparation ::=
-    |
-    DELETE IF delete_if {: Eval.emitDeleteIfCmd(); :} preparation |
-    DELETE COLUMN delete_column {: Eval.emitDeleteColumnCmd(); :} preparation |
-    FEATURE IDENT:id COLON feature {: Eval.emitFeature(id.toString()); :} preparation
-  ;
 
-delete_if ::= 
-    TRUE  {: Eval.emitSubexpression(Eval.Subexpression.LITERAL); :} |
-    TRUE AND NOT IDENT {: Eval.emitSubexpression(Eval.Subexpression.LITERAL); :} |
-    IDENT PLUS INT_LITERAL TIMES INT_LITERAL GEQ  INT_LITERAL {: Eval.emitSubexpression(Eval.Subexpression.LITERAL); :} |
-    INT_LITERAL  {: Eval.emitSubexpression(Eval.Subexpression.LITERAL); :}
-  ;
-
-delete_column ::= 
-    IDENT |
-    IDENT COMMA delete_column
-  ;
-
-feature ::=
-    FLOAT EQ FLOAT_LITERAL {: Eval.emitSubexpression(Eval.Subexpression.LITERAL); :} |
-    FLOAT EQ MINUS INT_LITERAL TIMES INT_LITERAL MINUS DATE_LITERAL  {: Eval.emitSubexpression(Eval.Subexpression.LITERAL); :} |
-    INT EQ IDENT GEQ IDENT DIV STRING_LITERAL {: Eval.emitSubexpression(Eval.Subexpression.LITERAL); :} |
-    STRING EQ IF FALSE THEN IF IDENT THEN IDENT ELSE IDENT END ELSE TODAY END {: Eval.emitSubexpression(Eval.Subexpression.IFTHENELSE); :} 
   ;
