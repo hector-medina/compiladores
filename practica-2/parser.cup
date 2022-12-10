@@ -52,7 +52,9 @@ non terminal ex_constant;
 non terminal ex_ident;
 non terminal ex_function;
 non terminal ex_boolean;
+non terminal number;
 non terminal ex_arithmetic;
+non terminal ex_relational;
 
 file ::= 
     DATASET IDENT:id OPEN_KEY dataset CLOSE_KEY {: Eval.emitDatasetDecl(id.toString ()); :} 
@@ -78,9 +80,9 @@ column_type ::=
   ;
 
 preparation ::=
-    | DELETE IF expression preparation
-    | DELETE COLUMN delete_column preparation
-    | FEATURE IDENT COLON expression preparation
+    | DELETE IF expression {: Eval.emitDeleteIfCmd(); :} preparation
+    | DELETE COLUMN delete_column {: Eval.emitDeleteIfCmd(); :} preparation
+    | FEATURE IDENT:name COLON expression {: Eval.emitFeature(name.toString()); :} preparation
   ;
 
 delete_column ::= 
@@ -94,21 +96,22 @@ expression ::=
     | ex_function
     | ex_boolean
     | ex_arithmetic
-    | FLOAT EQ
+    | ex_relational
   ;
 
 ex_constant ::=
-    TRUE
-    | FALSE
-    | TODAY
-    | DATE_LITERAL
-    | INT_LITERAL
-    | FLOAT_LITERAL
-    | STRING_LITERAL
+    TRUE {: Eval.emitSubexpression(Eval.Subexpression.LITERAL); :}
+    | FALSE {: Eval.emitSubexpression(Eval.Subexpression.LITERAL); :}
+    | TODAY {: Eval.emitSubexpression(Eval.Subexpression.LITERAL); :}
+    | DATE_LITERAL {: Eval.emitSubexpression(Eval.Subexpression.LITERAL); :}
+    | INT_LITERAL {: Eval.emitSubexpression(Eval.Subexpression.LITERAL); :}
+    | FLOAT_LITERAL {: Eval.emitSubexpression(Eval.Subexpression.LITERAL); :}
+    | STRING_LITERAL {: Eval.emitSubexpression(Eval.Subexpression.LITERAL); :}
   ;
 
 ex_ident ::=
-    IDENT
+    FLOAT EQ FLOAT_LITERAL {: Eval.emitSubexpression(Eval.Subexpression.LITERAL); :}
+    | INT EQ INT_LITERAL {: Eval.emitSubexpression(Eval.Subexpression.LITERAL); :}
   ;
 
 ex_function ::=
@@ -122,5 +125,22 @@ ex_boolean ::=
   ;
 
 ex_arithmetic ::=
+    MINUS number
+    | number PLUS number
+    | number TIMES number
+    | number DIV number
+  ;
 
+ex_relational ::=
+    number EQ number
+    | number NEQ number
+    | number LT number
+    | number GT number
+    | number LEQ number
+    | number GEQ number
+  ;
+
+number ::= 
+    INT_LITERAL
+    | FLOAT_LITERAL
   ;
