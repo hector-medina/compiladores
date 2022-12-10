@@ -1,0 +1,97 @@
+import java_cup.runtime.*;
+import java.io.*;
+import java.time.LocalDate;
+
+parser code {:
+
+    // --- COMPILERS -- UNIVERSITAT OBERTA DE CATALUNYA
+    // --- Activity 2 - Syntactic analysis analysis
+    //
+    // STUDENT FULL NAME:
+    // UOC USERNAME:
+    // COURSE INSTRUCTOR:
+
+    // Add any attributes to the parser (if you need them) here
+
+
+    // Add any code that you would like to execute before the parser begins
+    // Here you can initialize any variables you require
+    // There is no need to modify this funcion if you don't need it!
+    public static void initParser() {
+
+    }
+
+    // Add any code that you would like to execute after the parser ends
+    // There is no need to modify this function if you don't need it!
+    public static void endParser() {
+
+
+    }
+
+
+:}
+
+terminal DATASET, PREPARATION, COLUMN, FEATURE, DELETE, BOOLEAN, INT, FLOAT, STRING, DATE;
+terminal AND, OR, NOT, DIV, IF, THEN, ELSE, END, TRUE, FALSE, TODAY;
+terminal EQ, NEQ, LT, GT, LEQ, GEQ, PLUS, MINUS, TIMES, NEG;
+terminal OPEN_KEY, CLOSE_KEY, OPEN_PAREN, CLOSE_PAREN, COMMA, COLON;
+terminal String  IDENT;
+terminal LocalDate DATE_LITERAL;
+terminal Float   FLOAT_LITERAL;
+terminal Integer INT_LITERAL;
+terminal String  STRING_LITERAL;
+
+non terminal file;
+non terminal dataset;
+non terminal column;
+non terminal preparation;
+non terminal delete_if;
+non terminal delete_column;
+non terminal feature;
+
+file ::= 
+    DATASET IDENT:id OPEN_KEY dataset CLOSE_KEY {: Eval.emitDatasetDecl(id.toString ()); :} | 
+    DATASET IDENT:id OPEN_KEY dataset CLOSE_KEY {: Eval.emitDatasetDecl(id.toString ()); :} file
+  ;
+
+
+dataset ::= 
+    |
+    PREPARATION OPEN_KEY preparation CLOSE_KEY {: Eval.emitPreparation(); :} |
+    COLUMN column {: Eval.emitColumnDecl(); :}  dataset 
+  ;
+
+column ::= 
+    IDENT COLON STRING |
+    IDENT COLON DATE |
+    IDENT COLON FLOAT |
+    IDENT COLON INT |
+    IDENT COLON BOOLEAN |
+    IDENT COMMA column
+  ;
+
+preparation ::=
+    |
+    DELETE IF delete_if {: Eval.emitDeleteIfCmd(); :} preparation |
+    DELETE COLUMN delete_column {: Eval.emitDeleteColumnCmd(); :} preparation |
+    FEATURE IDENT:id COLON feature {: Eval.emitFeature(id.toString()); :} preparation
+  ;
+
+delete_if ::= 
+    TRUE  {: Eval.emitSubexpression(Eval.Subexpression.LITERAL); :} |
+    TRUE AND NOT IDENT {: Eval.emitSubexpression(Eval.Subexpression.LITERAL); :} |
+    IDENT PLUS INT_LITERAL TIMES INT_LITERAL GEQ  INT_LITERAL {: Eval.emitSubexpression(Eval.Subexpression.LITERAL); :} |
+    INT_LITERAL  {: Eval.emitSubexpression(Eval.Subexpression.LITERAL); :}
+  ;
+
+delete_column ::= 
+    IDENT |
+    IDENT COMMA delete_column
+  ;
+
+feature ::=
+    FLOAT EQ FLOAT_LITERAL {: Eval.emitSubexpression(Eval.Subexpression.LITERAL); :} |
+    FLOAT EQ MINUS INT_LITERAL TIMES INT_LITERAL MINUS DATE_LITERAL  {: Eval.emitSubexpression(Eval.Subexpression.LITERAL); :} |
+    INT EQ IDENT GEQ IDENT DIV STRING_LITERAL {: Eval.emitSubexpression(Eval.Subexpression.LITERAL); :} |
+    STRING EQ IF FALSE THEN IF IDENT THEN IDENT ELSE IDENT END ELSE TODAY END {: Eval.emitSubexpression(Eval.Subexpression.IFTHENELSE); :} 
+  ;
