@@ -107,7 +107,7 @@ expression ::=
  ;
 
 ex_constant ::=
-    TRUE {: System.out.println("esto es el TRUE"); Eval.emitSubexpression(Eval.Subexpression.LITERAL); :}
+    TRUE {: Eval.emitSubexpression(Eval.Subexpression.LITERAL); :}
     | FALSE {: Eval.emitSubexpression(Eval.Subexpression.LITERAL); :}
     | TODAY {: Eval.emitSubexpression(Eval.Subexpression.LITERAL); :}
     | DATE_LITERAL {: Eval.emitSubexpression(Eval.Subexpression.LITERAL); :}
