@@ -48,13 +48,22 @@ non terminal column_type;
 non terminal preparation;
 non terminal delete_column;
 non terminal expression;
+non terminal subexpression;
 non terminal ex_constant;
 non terminal ex_ident;
 non terminal ex_function;
 non terminal ex_boolean;
 non terminal number;
-non terminal ex_arithmetic;
+non terminal ex_arithmetic_unary;
+non terminal ex_arithmetic_binary;
 non terminal ex_relational;
+non terminal ex_conditional;
+
+precedence left GT, LT, GEQ, LEQ;
+precedence left EQ, NEQ;
+precedence left PLUS, MINUS;
+precedence left TIMES, DIV;
+precedence left NOT;
 
 file ::= 
     DATASET IDENT:id OPEN_KEY dataset CLOSE_KEY {: Eval.emitDatasetDecl(id.toString ()); :} 
@@ -91,56 +100,71 @@ delete_column ::=
  ;
 
 expression ::= 
-    ex_constant
-    | ex_ident 
-    | ex_function
-    | ex_boolean
-    | ex_arithmetic
-    | ex_relational
+    | ex_constant expression
+    | ex_ident   expression
+    | ex_function  expression
+    | ex_boolean expression
+    | ex_arithmetic_binary expression
+    | ex_relational expression
+    | ex_conditional expression
+  ;
+
+subexpression ::=
+
   ;
 
 ex_constant ::=
-    TRUE {: Eval.emitSubexpression(Eval.Subexpression.LITERAL); :}
-    | FALSE {: Eval.emitSubexpression(Eval.Subexpression.LITERAL); :}
-    | TODAY {: Eval.emitSubexpression(Eval.Subexpression.LITERAL); :}
+    TRUE   {: Eval.emitSubexpression(Eval.Subexpression.LITERAL); :}
+    | FALSE  {: Eval.emitSubexpression(Eval.Subexpression.LITERAL); :}
+    | TODAY  {: Eval.emitSubexpression(Eval.Subexpression.LITERAL); :}
     | DATE_LITERAL {: Eval.emitSubexpression(Eval.Subexpression.LITERAL); :}
-    | INT_LITERAL {: Eval.emitSubexpression(Eval.Subexpression.LITERAL); :}
-    | FLOAT_LITERAL {: Eval.emitSubexpression(Eval.Subexpression.LITERAL); :}
-    | STRING_LITERAL {: Eval.emitSubexpression(Eval.Subexpression.LITERAL); :}
+    | INT_LITERAL  {: Eval.emitSubexpression(Eval.Subexpression.LITERAL); :}
+    | FLOAT_LITERAL  {: Eval.emitSubexpression(Eval.Subexpression.LITERAL); :}
+    | STRING_LITERAL  
   ;
 
 ex_ident ::=
-    FLOAT EQ FLOAT_LITERAL {: Eval.emitSubexpression(Eval.Subexpression.LITERAL); :}
-    | INT EQ INT_LITERAL {: Eval.emitSubexpression(Eval.Subexpression.LITERAL); :}
+    IDENT {: Eval.emitSubexpression(Eval.Subexpression.IDENT); :}
+    | STRING EQ 
+    | FLOAT EQ 
+    | INT EQ
   ;
 
 ex_function ::=
-    IDENT OPEN_PAREN IDENT CLOSE_PAREN
+   IDENT OPEN_PAREN IDENT CLOSE_PAREN {: Eval.emitSubexpression(Eval.Subexpression.FUNCTION); :}
   ;
 
 ex_boolean ::=
-    NOT expression
-   // | expression AND expression
-   // | expression OR expression
+    NOT {: Eval.emitSubexpression(Eval.Subexpression.NOT); :}
+    | AND {: Eval.emitSubexpression(Eval.Subexpression.AND); :}
+    | OR {: Eval.emitSubexpression(Eval.Subexpression.OR); :}
   ;
 
-ex_arithmetic ::=
-    MINUS number
-    | number PLUS number
-    | number TIMES number
-    | number DIV number
+ex_arithmetic_unary ::=
+  ;
+
+ex_arithmetic_binary ::=
+    PLUS {: Eval.emitSubexpression(Eval.Subexpression.PLUS); :}
+    | MINUS {: Eval.emitSubexpression(Eval.Subexpression.MINUS); :}
+    | TIMES {: Eval.emitSubexpression(Eval.Subexpression.TIMES); :}
+    | DIV {: Eval.emitSubexpression(Eval.Subexpression.DIV); :}
   ;
 
 ex_relational ::=
-    number EQ number
-    | number NEQ number
-    | number LT number
-    | number GT number
-    | number LEQ number
-    | number GEQ number
+    EQ {: Eval.emitSubexpression(Eval.Subexpression.EQ); :}
+    |  NEQ {: Eval.emitSubexpression(Eval.Subexpression.NEQ); :}
+    |  LT {: Eval.emitSubexpression(Eval.Subexpression.LT); :}
+    |  GT {: Eval.emitSubexpression(Eval.Subexpression.GT); :}
+    |  LEQ {: Eval.emitSubexpression(Eval.Subexpression.LEQ); :}
+    |  GEQ {: Eval.emitSubexpression(Eval.Subexpression.GEQ); :}
+  ;
+
+ex_conditional ::=
+    IF expression THEN expression ELSE expression END  {: Eval.emitSubexpression(Eval.Subexpression.IFTHENELSE); :}
   ;
 
 number ::= 
     INT_LITERAL
     | FLOAT_LITERAL
   ;
+
