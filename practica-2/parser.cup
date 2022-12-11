@@ -44,127 +44,74 @@ terminal String  STRING_LITERAL;
 non terminal file;
 non terminal dataset;
 non terminal column;
-non terminal column_type;
 non terminal preparation;
 non terminal delete_column;
+non terminal feature;
+non terminal type;
 non terminal expression;
-non terminal subexpression;
 non terminal ex_constant;
-non terminal ex_ident;
-non terminal ex_function;
-non terminal ex_boolean;
-non terminal number;
-non terminal ex_arithmetic_unary;
-non terminal ex_arithmetic_binary;
-non terminal ex_relational;
-non terminal ex_conditional;
-
-precedence left GT, LT, GEQ, LEQ;
-precedence left EQ, NEQ;
-precedence left PLUS, MINUS;
-precedence left TIMES, DIV;
-precedence left NOT;
 
 file ::= 
-    DATASET IDENT:id OPEN_KEY dataset CLOSE_KEY {: Eval.emitDatasetDecl(id.toString ()); :} 
-    | DATASET IDENT:id OPEN_KEY dataset CLOSE_KEY {: Eval.emitDatasetDecl(id.toString ()); :} file
+    DATASET IDENT:id OPEN_KEY dataset CLOSE_KEY {: Eval.emitDatasetDecl(id.toString()); :} 
+    | DATASET IDENT:id OPEN_KEY dataset CLOSE_KEY {: Eval.emitDatasetDecl(id.toString()); :}  file
   ;
 
+/*
+* Dataset encontrado.
+*/
 dataset ::= 
     | COLUMN column {: Eval.emitColumnDecl(); :} dataset
-    | PREPARATION OPEN_KEY preparation {: Eval.emitPreparation(); :} CLOSE_KEY
+    | PREPARATION OPEN_KEY preparation CLOSE_KEY {: Eval.emitPreparation(); :} dataset
   ;
 
-column ::= 
-    IDENT COLON column_type
+/*
+* Columna de un dataset.
+*/
+column ::=
+    IDENT COLON type
     | IDENT COMMA column
   ;
 
-column_type ::=
+/*
+* Tipos de datos. Sirve para definir columnas o eliminarlas.
+*/
+type ::=
     BOOLEAN
-    | INT
-    | FLOAT 
+    | INT 
+    | FLOAT
     | STRING
     | DATE
   ;
 
+/*
+* Bloque preparation del dataset.
+*/
 preparation ::=
     | DELETE IF expression {: Eval.emitDeleteIfCmd(); :} preparation
     | DELETE COLUMN delete_column {: Eval.emitDeleteColumnCmd(); :} preparation
-    | FEATURE IDENT:name COLON expression {: Eval.emitFeature(name.toString()); :} preparation
+    | FEATURE IDENT:name feature {: Eval.emitFeature(name.toString()); :} preparation
   ;
 
-delete_column ::= 
+delete_column ::=
     IDENT
     | IDENT COMMA delete_column
+  ;
+
+feature ::=
+    COLON type EQ expression
+  ;
+
+// Expresiones
+expression ::=
+    | ex_constant expression
  ;
 
-expression ::= 
-    | ex_constant expression
-    | ex_ident   expression
-    | ex_function  expression
-    | ex_boolean expression
-    | ex_arithmetic_binary expression
-    | ex_relational expression
-    | ex_conditional expression
-  ;
-
-subexpression ::=
-
-  ;
-
 ex_constant ::=
-    TRUE   {: Eval.emitSubexpression(Eval.Subexpression.LITERAL); :}
-    | FALSE  {: Eval.emitSubexpression(Eval.Subexpression.LITERAL); :}
-    | TODAY  {: Eval.emitSubexpression(Eval.Subexpression.LITERAL); :}
+    TRUE {: System.out.println("esto es el TRUE"); Eval.emitSubexpression(Eval.Subexpression.LITERAL); :}
+    | FALSE {: Eval.emitSubexpression(Eval.Subexpression.LITERAL); :}
+    | TODAY {: Eval.emitSubexpression(Eval.Subexpression.LITERAL); :}
     | DATE_LITERAL {: Eval.emitSubexpression(Eval.Subexpression.LITERAL); :}
-    | INT_LITERAL  {: Eval.emitSubexpression(Eval.Subexpression.LITERAL); :}
-    | FLOAT_LITERAL  {: Eval.emitSubexpression(Eval.Subexpression.LITERAL); :}
-    | STRING_LITERAL  
+    | INT_LITERAL {: Eval.emitSubexpression(Eval.Subexpression.LITERAL); :}
+    | FLOAT_LITERAL {: Eval.emitSubexpression(Eval.Subexpression.LITERAL); :}
+    | STRING_LITERAL {: Eval.emitSubexpression(Eval.Subexpression.LITERAL); :}
   ;
-
-ex_ident ::=
-    IDENT {: Eval.emitSubexpression(Eval.Subexpression.IDENT); :}
-    | STRING EQ 
-    | FLOAT EQ 
-    | INT EQ
-  ;
-
-ex_function ::=
-   IDENT OPEN_PAREN IDENT CLOSE_PAREN {: Eval.emitSubexpression(Eval.Subexpression.FUNCTION); :}
-  ;
-
-ex_boolean ::=
-    NOT {: Eval.emitSubexpression(Eval.Subexpression.NOT); :}
-    | AND {: Eval.emitSubexpression(Eval.Subexpression.AND); :}
-    | OR {: Eval.emitSubexpression(Eval.Subexpression.OR); :}
-  ;
-
-ex_arithmetic_unary ::=
-  ;
-
-ex_arithmetic_binary ::=
-    PLUS {: Eval.emitSubexpression(Eval.Subexpression.PLUS); :}
-    | MINUS {: Eval.emitSubexpression(Eval.Subexpression.MINUS); :}
-    | TIMES {: Eval.emitSubexpression(Eval.Subexpression.TIMES); :}
-    | DIV {: Eval.emitSubexpression(Eval.Subexpression.DIV); :}
-  ;
-
-ex_relational ::=
-    EQ {: Eval.emitSubexpression(Eval.Subexpression.EQ); :}
-    |  NEQ {: Eval.emitSubexpression(Eval.Subexpression.NEQ); :}
-    |  LT {: Eval.emitSubexpression(Eval.Subexpression.LT); :}
-    |  GT {: Eval.emitSubexpression(Eval.Subexpression.GT); :}
-    |  LEQ {: Eval.emitSubexpression(Eval.Subexpression.LEQ); :}
-    |  GEQ {: Eval.emitSubexpression(Eval.Subexpression.GEQ); :}
-  ;
-
-ex_conditional ::=
-    IF expression THEN expression ELSE expression END  {: Eval.emitSubexpression(Eval.Subexpression.IFTHENELSE); :}
-  ;
-
-number ::= 
-    INT_LITERAL
-    | FLOAT_LITERAL
-  ;
-
