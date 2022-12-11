@@ -50,6 +50,16 @@ non terminal feature;
 non terminal type;
 non terminal expression;
 non terminal ex_constant;
+non terminal ex_ident;
+non terminal ex_function;
+
+precedence left AND, OR;
+precedence left GEQ, LEQ, GT, LT;
+precedence left EQ, NEQ;
+precedence left PLUS, MINUS;
+precedence left TIMES, DIV;
+precedence left NOT, NEG;
+
 
 file ::= 
     DATASET IDENT:id OPEN_KEY dataset CLOSE_KEY {: Eval.emitDatasetDecl(id.toString()); :} 
@@ -104,6 +114,8 @@ feature ::=
 // Expresiones
 expression ::=
     | ex_constant expression
+    | ex_ident expression
+    | ex_function expression
  ;
 
 ex_constant ::=
@@ -114,4 +126,12 @@ ex_constant ::=
     | INT_LITERAL {: Eval.emitSubexpression(Eval.Subexpression.LITERAL); :}
     | FLOAT_LITERAL {: Eval.emitSubexpression(Eval.Subexpression.LITERAL); :}
     | STRING_LITERAL {: Eval.emitSubexpression(Eval.Subexpression.LITERAL); :}
+  ;
+
+ex_ident ::=
+    IDENT
+  ;
+
+ex_function ::=
+    ex_ident OPEN_PAREN expression CLOSE_KEY
   ;
