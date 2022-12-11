@@ -133,5 +133,5 @@ ex_ident ::=
   ;
 
 ex_function ::=
-    ex_ident OPEN_PAREN expression CLOSE_KEY
+    ex_ident OPEN_PAREN expression CLOSE_PAREN
   ;
