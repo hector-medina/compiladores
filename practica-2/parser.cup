@@ -52,10 +52,10 @@ non terminal expression, subexpression;
 non terminal ex_constant;
 non terminal ex_ident;
 non terminal ex_function;
-non terminal ex_boolean_binary, ex_boolean_unary, boolean_operands;
-non terminal ex_arithmetic_binary, ex_arithmetic_dos, arithmetic_operands;
-non terminal ex_relational_binary;
 non terminal ex_conditional;
+non terminal ex_boolean;
+non terminal ex_arithmetic;
+non terminal ex_relational;
 
 precedence left AND, OR;
 precedence left GEQ, LEQ, GT, LT;
@@ -64,31 +64,25 @@ precedence left PLUS, MINUS;
 precedence left TIMES, DIV;
 precedence left NOT, NEG;
 
-
+/* Lee recursivamente el fichero para encontrar datasets */
 file ::= 
     DATASET IDENT:id OPEN_KEY dataset CLOSE_KEY {: Eval.emitDatasetDecl(id.toString()); :} 
     | DATASET IDENT:id OPEN_KEY dataset CLOSE_KEY {: Eval.emitDatasetDecl(id.toString()); :}  file
   ;
 
-/*
-* Dataset encontrado.
-*/
+/* Dataset. */
 dataset ::= 
     | COLUMN column {: Eval.emitColumnDecl(); :} dataset
     | PREPARATION OPEN_KEY preparation CLOSE_KEY {: Eval.emitPreparation(); :} dataset
   ;
 
-/*
-* Columna de un dataset.
-*/
+/* Columna de un dataset. */
 column ::=
     IDENT COLON type
     | IDENT COMMA column
   ;
 
-/*
-* Tipos de datos. Sirve para definir columnas o eliminarlas.
-*/
+/* Tipos de datos. Sirve para definir columnas o eliminarlas. */
 type ::=
     BOOLEAN
     | INT
@@ -97,43 +91,53 @@ type ::=
     | DATE
   ;
 
-/*
-* Bloque preparation del dataset.
-*/
+/* Bloque preparation del dataset. */
 preparation ::=
     | DELETE IF expression {: Eval.emitDeleteIfCmd(); :} preparation
     | DELETE COLUMN delete_column {: Eval.emitDeleteColumnCmd(); :} preparation
     | FEATURE IDENT:name feature {: Eval.emitFeature(name.toString()); :} preparation
   ;
 
+/* Eliminar columnas  */
 delete_column ::=
     IDENT
     | IDENT COMMA delete_column
   ;
 
+/* Caracteristica */
 feature ::=
     COLON type EQ expression
   ;
 
+/* Expresiones */
 expression ::=
-    expression subexpression
-    | subexpression
-  ;
 
-subexpression ::=
+    // Constantes
     ex_constant
-    | NOT ex_constant
-    | MINUS ex_constant   
+
+    // Identificadores
     | ex_ident
-    | NOT ex_ident  
-    | MINUS ex_ident
-    | subexpression ex_boolean_binary subexpression  
-    | subexpression ex_arithmetic_binary subexpression  
-    | subexpression ex_relational_binary subexpression  
+
+    // Operaciones Booleanas
+    | ex_boolean
+    
+    // Relacionales
+    | ex_relational
+    
+    // Aritmeticas
+    | ex_arithmetic
+
+    // Condicional
     | ex_conditional
- ;
 
+    | OPEN_PAREN expression CLOSE_PAREN {: Eval.emitSubexpression(Eval.Subexpression.PAREN);:}
 
+    // Función
+    | IDENT OPEN_PAREN expression CLOSE_PAREN {: Eval.emitSubexpression(Eval.Subexpression.FUNCTION);:}
+    
+;
+
+/* Constantes literales */
 ex_constant ::=
     TRUE {: Eval.emitSubexpression(Eval.Subexpression.LITERAL); :}
     | FALSE {: Eval.emitSubexpression(Eval.Subexpression.LITERAL); :}
@@ -144,31 +148,45 @@ ex_constant ::=
     | STRING_LITERAL {: Eval.emitSubexpression(Eval.Subexpression.LITERAL); :}
   ;
 
-ex_boolean_binary ::=
-    AND {: Eval.emitSubexpression(Eval.Subexpression.AND); :}
-    | OR {: Eval.emitSubexpression(Eval.Subexpression.OR); :}
-  ;
-
+/* Identificadores */
 ex_ident ::=
     IDENT {: Eval.emitSubexpression(Eval.Subexpression.IDENT); :}
   ;
 
-ex_arithmetic_binary ::=
-    PLUS {: Eval.emitSubexpression(Eval.Subexpression.PLUS); :}
-    | MINUS {: Eval.emitSubexpression(Eval.Subexpression.MINUS); :}
-    | TIMES {: Eval.emitSubexpression(Eval.Subexpression.TIMES); :}
-    | DIV {: Eval.emitSubexpression(Eval.Subexpression.DIV); :}
- ;
-
-ex_relational_binary ::=
-    GEQ {: Eval.emitSubexpression(Eval.Subexpression.GEQ); :}
-    | GT {: Eval.emitSubexpression(Eval.Subexpression.GT); :}
-    | LEQ {: Eval.emitSubexpression(Eval.Subexpression.LEQ); :}
-    | LT {: Eval.emitSubexpression(Eval.Subexpression.LT); :}
-    | EQ {: Eval.emitSubexpression(Eval.Subexpression.EQ); :}
-    | NEQ {: Eval.emitSubexpression(Eval.Subexpression.NEQ); :}
+/* Expresión condicional */
+ex_conditional ::=
+    IF expression THEN expression ELSE expression END {: Eval.emitSubexpression(Eval.Subexpression.IFTHENELSE); :}
   ;
 
-ex_conditional ::=
-    IF subexpression THEN subexpression ELSE subexpression END {: Eval.emitSubexpression(Eval.Subexpression.IFTHENELSE); :}
+ex_boolean ::=
+    // Booleanas binarias
+    expression AND expression {: Eval.emitSubexpression(Eval.Subexpression.AND); :}
+    | expression OR expression {: Eval.emitSubexpression(Eval.Subexpression.OR); :}
+   
+    // Booleanas unarias
+    | NOT expression {: Eval.emitSubexpression(Eval.Subexpression.NOT); :}
+  ;
+
+ex_relational ::=
+    expression LT expression {: Eval.emitSubexpression(Eval.Subexpression.LT); :}
+    | expression GT expression {: Eval.emitSubexpression(Eval.Subexpression.GT); :}
+    | expression LEQ expression {: Eval.emitSubexpression(Eval.Subexpression.LEQ); :}
+    | expression GEQ expression {: Eval.emitSubexpression(Eval.Subexpression.GEQ); :}
+    | expression EQ expression {: Eval.emitSubexpression(Eval.Subexpression.EQ); :}
+    | expression NEQ expression {: Eval.emitSubexpression(Eval.Subexpression.NEQ); :}
+  ;
+
+ex_arithmetic ::=
+    // Aritmeticas binarias
+    expression PLUS expression {: Eval.emitSubexpression(Eval.Subexpression.PLUS); :}
+    | expression MINUS expression {: Eval.emitSubexpression(Eval.Subexpression.MINUS); :}
+    | expression DIV expression {: Eval.emitSubexpression(Eval.Subexpression.DIV); :}
+    | expression TIMES expression {: Eval.emitSubexpression(Eval.Subexpression.TIMES); :}
+
+    // Aritmeticas unarias
+    | MINUS expression {: Eval.emitSubexpression(Eval.Subexpression.NEG); :} %prec NEG
+  ;
+
+ex_function ::=
+    IDENT OPEN_PAREN expression CLOSE_PAREN {: Eval.emitSubexpression(Eval.Subexpression.FUNCTION);:} 
   ;
