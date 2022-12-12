@@ -52,6 +52,10 @@ non terminal expression;
 non terminal ex_constant;
 non terminal ex_ident;
 non terminal ex_function;
+non terminal ex_boolean, boolean_operands;
+non terminal ex_arithmetic, ex_arithmetic_dos, arithmetic_operands;
+non terminal ex_relational;
+non terminal ex_conditional;
 
 precedence left AND, OR;
 precedence left GEQ, LEQ, GT, LT;
@@ -87,7 +91,7 @@ column ::=
 */
 type ::=
     BOOLEAN
-    | INT 
+    | INT
     | FLOAT
     | STRING
     | DATE
@@ -113,25 +117,54 @@ feature ::=
 
 // Expresiones
 expression ::=
-    | ex_constant expression
-    | ex_ident expression
+    | ex_constant {: Eval.emitSubexpression(Eval.Subexpression.LITERAL); :} expression 
+    | ex_ident {: Eval.emitSubexpression(Eval.Subexpression.IDENT); :} expression 
     | ex_function expression
+    | ex_boolean expression 
+    | ex_arithmetic expression {: Eval.emitSubexpression(Eval.Subexpression.DIV); :}
+    | ex_relational expression {: Eval.emitSubexpression(Eval.Subexpression.GEQ); :}
+    | ex_conditional expression
  ;
 
 ex_constant ::=
-    TRUE {: Eval.emitSubexpression(Eval.Subexpression.LITERAL); :}
-    | FALSE {: Eval.emitSubexpression(Eval.Subexpression.LITERAL); :}
-    | TODAY {: Eval.emitSubexpression(Eval.Subexpression.LITERAL); :}
-    | DATE_LITERAL {: Eval.emitSubexpression(Eval.Subexpression.LITERAL); :}
-    | INT_LITERAL {: Eval.emitSubexpression(Eval.Subexpression.LITERAL); :}
-    | FLOAT_LITERAL {: Eval.emitSubexpression(Eval.Subexpression.LITERAL); :}
-    | STRING_LITERAL {: Eval.emitSubexpression(Eval.Subexpression.LITERAL); :}
+    TRUE 
+    | FALSE 
+    | TODAY 
+    | DATE_LITERAL 
+    | INT_LITERAL 
+    | FLOAT_LITERAL 
+    | STRING_LITERAL 
   ;
 
 ex_ident ::=
-    IDENT
+    IDENT 
   ;
 
 ex_function ::=
     ex_ident OPEN_PAREN expression CLOSE_PAREN
+  ;
+
+ex_boolean ::=
+    AND   {: Eval.emitSubexpression(Eval.Subexpression.AND); :}
+    | OR  {: Eval.emitSubexpression(Eval.Subexpression.OR); :}
+    | NOT  {: Eval.emitSubexpression(Eval.Subexpression.NOT); :}
+  ;
+
+ex_arithmetic ::=
+    PLUS 
+    | MINUS 
+    | TIMES 
+    | DIV  
+  ;
+
+ex_relational ::=
+    GEQ  
+    | GT
+    | LEQ
+    | LT
+    | EQ
+  ;
+
+ex_conditional ::=
+    IF expression THEN expression ELSE expression END {: Eval.emitSubexpression(Eval.Subexpression.IFTHENELSE); :}
   ;
