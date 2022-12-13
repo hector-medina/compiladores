@@ -48,7 +48,7 @@ non terminal preparation;
 non terminal delete_column;
 non terminal feature;
 non terminal type;
-non terminal expression, subexpression;
+non terminal expression;
 non terminal ex_constant;
 non terminal ex_ident;
 non terminal ex_function;
@@ -56,6 +56,7 @@ non terminal ex_conditional;
 non terminal ex_boolean;
 non terminal ex_arithmetic;
 non terminal ex_relational;
+non terminal ex_parent;
 
 precedence left AND, OR;
 precedence left GEQ, LEQ, GT, LT;
@@ -130,10 +131,11 @@ expression ::=
     // Condicional
     | ex_conditional
 
-    | OPEN_PAREN expression CLOSE_PAREN {: Eval.emitSubexpression(Eval.Subexpression.PAREN);:}
+    // Añadir parentesis 
+    | ex_parent
 
     // Función
-    | IDENT OPEN_PAREN expression CLOSE_PAREN {: Eval.emitSubexpression(Eval.Subexpression.FUNCTION);:}
+    | ex_function
     
 ;
 
@@ -158,6 +160,7 @@ ex_conditional ::=
     IF expression THEN expression ELSE expression END {: Eval.emitSubexpression(Eval.Subexpression.IFTHENELSE); :}
   ;
 
+/* Expresiones Booleanas */
 ex_boolean ::=
     // Booleanas binarias
     expression AND expression {: Eval.emitSubexpression(Eval.Subexpression.AND); :}
@@ -167,6 +170,7 @@ ex_boolean ::=
     | NOT expression {: Eval.emitSubexpression(Eval.Subexpression.NOT); :}
   ;
 
+/* Expresiones relacionales */
 ex_relational ::=
     expression LT expression {: Eval.emitSubexpression(Eval.Subexpression.LT); :}
     | expression GT expression {: Eval.emitSubexpression(Eval.Subexpression.GT); :}
@@ -176,6 +180,7 @@ ex_relational ::=
     | expression NEQ expression {: Eval.emitSubexpression(Eval.Subexpression.NEQ); :}
   ;
 
+/* Expresiones aritméticas */
 ex_arithmetic ::=
     // Aritmeticas binarias
     expression PLUS expression {: Eval.emitSubexpression(Eval.Subexpression.PLUS); :}
@@ -187,6 +192,12 @@ ex_arithmetic ::=
     | MINUS expression {: Eval.emitSubexpression(Eval.Subexpression.NEG); :} %prec NEG
   ;
 
+/* Función */
 ex_function ::=
     IDENT OPEN_PAREN expression CLOSE_PAREN {: Eval.emitSubexpression(Eval.Subexpression.FUNCTION);:} 
+  ;
+
+/* Paréntesis */
+ex_parent ::=
+    OPEN_PAREN expression CLOSE_PAREN {: Eval.emitSubexpression(Eval.Subexpression.PAREN);:}
   ;
