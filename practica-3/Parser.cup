@@ -1,0 +1,269 @@
+import java_cup.runtime.*;
+import java.io.*;
+import java.time.LocalDate;
+import java.util.*;
+
+parser code {:
+
+    // --- COMPILERS -- UNIVERSITAT OBERTA DE CATALUNYA
+    // --- Activity 3 - Semantic analysis
+    //
+    // STUDENT FULL NAME:
+    // UOC USERNAME:
+    // COURSE INSTRUCTOR:
+
+    // Add any attributes to the parser (if you need them) here
+    public static class Scope {
+      
+      private Stack<HashMap<String, Eval.Type>> scope;
+
+      public Scope(){
+        scope = new Stack<HashMap<String, Eval.Type>>();
+      }
+
+      public void init(){
+        HashMap<String, Eval.Type> hm = new HashMap<String, Eval.Type>();
+        scope.push(hm);
+      }
+
+      public void finish(){
+        scope.pop();
+      }
+
+      public void add(String elem, Eval.Type type){
+        scope.peek().put(elem, type);
+      }
+
+      public boolean contains(String elem){
+        return scope.peek().containsKey(elem);
+      }
+
+      public Eval.Type getType(String elem){
+        Eval.Type type = null;
+        if(contains(elem)){
+          type = scope.peek().get(elem);
+        }
+        return type;
+      }
+
+    }
+    
+    static Scope scope;
+
+    // Add any code that you would like to execute before the parser begins
+    // Here you can initialize any variables you require
+    // You may need to use it to initalize the symbol table(s)
+    public static void initParser() {
+      scope = new Scope();
+      scope.init();
+    }
+
+    // Add any code that you would like to execute after the parser ends
+    // There is no need to modify this function if you don't need it!
+    public static void endParser() {
+      scope.finish();
+    }
+
+    public static void initScope(){
+      scope.init();
+    }
+
+    public static void finishScope(){
+      scope.finish();
+    }
+
+    public static void checkDuplicateDataset(String datasetName){
+      if(scope.contains(datasetName)){
+        Eval.emitDuplicateDatasetError(datasetName);
+      } else {
+        Eval.emitDatasetDecl(datasetName);
+        scope.add(datasetName, null);
+      }
+    }
+
+    public static void checkDuplicateColumn(String columnName, Eval.Type type){
+      if(scope.contains(columnName)){
+        Eval.emitDuplicateIdentError(columnName);
+      } else {
+        Eval.emitColumnDecl(columnName, type);
+        scope.add(columnName, type);
+      }
+    }
+
+    public static void checkDuplicateFeature(String featureName, Eval.Type type){
+      if(scope.contains(featureName)){
+        Eval.emitDuplicateIdentError(featureName);
+      } else {
+        Eval.emitFeatureDecl(featureName, type);
+        scope.add(featureName, type);
+      }
+    }
+
+    public static boolean checkUndeclaredId(String id){
+      if(!scope.contains(id)){
+        Eval.emitUndeclaredIdentError(id);
+        return true;
+      } 
+      return false;
+    }
+
+    public static void checkIfBoolean(Eval.Type expr_type){
+      Eval.Type expr_expected = Eval.Type.BOOLEAN;
+      if(expr_type != expr_expected ){
+        Eval.emitTypeMismatchError(expr_expected, expr_type);
+      }
+    }
+
+    public static Eval.Type getType(String elem){
+      return scope.getType(elem);
+    }
+
+
+
+:}
+
+terminal DATASET, PREPARATION, COLUMN, FEATURE, DELETE, BOOLEAN, INT, FLOAT, STRING, DATE;
+terminal AND, OR, NOT, DIV, IF, THEN, ELSE, END, TRUE, FALSE, TODAY;
+terminal EQ, NEQ, LT, GT, LEQ, GEQ, PLUS, MINUS, TIMES, NEG;
+terminal OPEN_KEY, CLOSE_KEY, OPEN_PAREN, CLOSE_PAREN, COMMA, COLON;
+terminal String  IDENT;
+terminal LocalDate DATE_LITERAL;
+terminal Float   FLOAT_LITERAL;
+terminal Integer INT_LITERAL;
+terminal String  STRING_LITERAL;
+
+non terminal dataset_list, dataset_decl;
+non terminal column_opt, column_list, column_decl, ident_list, type_decl; 
+non terminal preparation_decl, preparation_opt;
+non terminal cmd_opt, feature_opt, cmd_list, cmd_decl, feature_list, feature_decl;
+non terminal expression, literal_expression;
+
+precedence left AND, OR;
+precedence left LEQ, LT, GEQ, GT;
+precedence left EQ, NEQ;
+precedence left PLUS, MINUS;
+precedence left TIMES, DIV;
+precedence left NEG, NOT;
+
+
+dataset_list ::=
+    dataset_decl
+  | dataset_list dataset_decl
+  ;
+
+dataset_decl ::= 
+    DATASET IDENT:id OPEN_KEY {: parser.initScope(); :} column_opt preparation_opt {: parser.finishScope(); :} CLOSE_KEY
+    {: parser.checkDuplicateDataset(id); :}
+  ; 
+
+column_opt ::=
+    {: /* Empty column list declaration */ :}
+  | column_list
+  ;
+
+column_list ::=
+    column_decl
+  | column_list column_decl
+  ;
+
+column_decl ::=
+    COLUMN ident_list:idList COLON type_decl:type 
+    {: 
+      ArrayList list = (ArrayList) idList;
+      for ( Object obj : list){
+        String id = (String) obj;
+        parser.checkDuplicateColumn(id, (Eval.Type) type);
+      } 
+    :}
+      
+  ;
+
+ident_list ::=
+    IDENT:id {: RESULT = new ArrayList(Arrays.asList(id)); :}
+  | ident_list:idList COMMA IDENT:id {: ArrayList list = (ArrayList) idList; list.add(id); RESULT = list; :}
+  ;
+
+type_decl ::=
+    BOOLEAN {: RESULT = Eval.Type.BOOLEAN; :} 
+  | INT {: RESULT = Eval.Type.INT; :}
+  | FLOAT {: RESULT = Eval.Type.FLOAT; :}
+  | STRING {: RESULT = Eval.Type.STRING; :}
+  | DATE {: RESULT = Eval.Type.DATE; :}
+  ;
+
+preparation_opt ::=
+    {: /* Nothing */ :}
+  | preparation_decl
+  ;
+
+preparation_decl ::=
+    PREPARATION OPEN_KEY cmd_opt feature_opt CLOSE_KEY
+  ;
+
+cmd_opt ::=
+    {: /* Empty command list */ :} 
+  | cmd_list
+  ;
+
+feature_opt ::=
+    {: /* Empty feature list */ :}
+  | feature_list
+  ;
+
+cmd_list ::=
+    cmd_decl
+  | cmd_list cmd_decl 
+  ;
+
+feature_list ::=
+    feature_decl
+  | feature_list feature_decl
+  ;
+
+cmd_decl ::=
+    DELETE IF expression:expr {: parser.checkIfBoolean((Eval.Type) expr); :}
+  | DELETE COLUMN ident_list:idList 
+    {: 
+      ArrayList list = (ArrayList) idList;   
+      for ( Object obj : list ){
+        String id = (String) obj;
+        parser.checkUndeclaredId(id);
+      }
+    :}
+  ;
+
+feature_decl ::= 
+    FEATURE IDENT:id COLON type_decl:type EQ expression  {: parser.checkDuplicateFeature(id.toString(), (Eval.Type) type);  :}
+  ;
+
+literal_expression ::=
+    TRUE {: RESULT = Eval.Type.BOOLEAN; :}
+  | FALSE {: RESULT = Eval.Type.BOOLEAN; :}
+  | TODAY {: RESULT = Eval.Type.DATE; :}
+  | INT_LITERAL {: RESULT = Eval.Type.INT; :}
+  | FLOAT_LITERAL {: RESULT = Eval.Type.FLOAT; :}
+  | STRING_LITERAL {: RESULT = Eval.Type.STRING; :}
+  | DATE_LITERAL {: RESULT = Eval.Type.DATE; :}
+  ;
+
+expression ::=
+    literal_expression:expr {: RESULT = expr; :}
+  | IDENT:id {: boolean declared = parser.checkUndeclaredId(id.toString()); if(!declared){ RESULT = parser.getType(id.toString()); } :}
+  | OPEN_PAREN expression CLOSE_PAREN
+  | IDENT OPEN_PAREN expression CLOSE_PAREN
+  | IF expression THEN expression ELSE expression END
+  | NOT expression
+  | expression AND expression
+  | expression OR expression
+  | MINUS expression 
+  | expression PLUS expression
+  | expression MINUS expression
+  | expression TIMES expression
+  | expression DIV expression
+  | expression EQ expression
+  | expression NEQ expression
+  | expression GT expression
+  | expression LT expression
+  | expression GEQ expression 
+  | expression LEQ expression 
+  ;
