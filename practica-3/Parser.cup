@@ -118,6 +118,42 @@ parser code {:
       return scope.getType(elem);
     }
 
+    public static boolean checkType(Eval.Type t1, Eval.Type t2){
+      boolean result = true;
+      if(t1 != t2){
+        result = false;
+        Eval.emitTypeMismatchError(t1, t2);
+      } 
+      return result;
+    }
+
+    public static Eval.Type checkComparative( Eval.Type expr1, Eval.Type expr2 ){
+      System.out.println("checkComparative:" + expr1 +" - "+ expr2);
+      if(expr1 != expr2){
+        Eval.emitTypeMismatchError(expr1, expr2);
+      }
+      return Eval.Type.BOOLEAN;
+    }
+
+    public static Eval.Type checkBoolean(Eval.Type expr1, Eval.Type expr2){
+      Eval.Type typeExpected = Eval.Type.BOOLEAN;
+      if(expr1 != typeExpected){
+        Eval.emitTypeMismatchError(expr1, typeExpected);
+      }
+      if(expr2 != typeExpected){
+        Eval.emitTypeMismatchError(expr2, typeExpected);
+      }
+      return typeExpected;
+    }
+
+    public static Eval.Type checkBoolean(Eval.Type expr){
+      Eval.Type typeExpected = Eval.Type.BOOLEAN;
+      if(expr != typeExpected){
+        Eval.emitTypeMismatchError(expr, typeExpected);
+      }
+      return typeExpected;
+    }
+
 
 
 :}
@@ -233,7 +269,14 @@ cmd_decl ::=
   ;
 
 feature_decl ::= 
-    FEATURE IDENT:id COLON type_decl:type EQ expression  {: parser.checkDuplicateFeature(id.toString(), (Eval.Type) type);  :}
+    FEATURE IDENT:id COLON type_decl:type EQ expression:expr
+    
+    {: parser.checkDuplicateFeature(id.toString(), (Eval.Type) type);  
+       System.out.println("FEATURE_hector ("+id+"-"+type+"): "+ expr);
+       if(expr != null){
+         parser.checkType( (Eval.Type) type, (Eval.Type) expr );
+       }
+    :}
   ;
 
 literal_expression ::=
@@ -248,22 +291,22 @@ literal_expression ::=
 
 expression ::=
     literal_expression:expr {: RESULT = expr; :}
-  | IDENT:id {: boolean declared = parser.checkUndeclaredId(id.toString()); if(!declared){ RESULT = parser.getType(id.toString()); } :}
-  | OPEN_PAREN expression CLOSE_PAREN
+  | IDENT:id {: boolean undeclared = parser.checkUndeclaredId(id.toString()); if(!undeclared){ RESULT = parser.getType(id.toString()); } :}
+  | OPEN_PAREN expression:expr CLOSE_PAREN {: RESULT = expr; :}
   | IDENT OPEN_PAREN expression CLOSE_PAREN
   | IF expression THEN expression ELSE expression END
-  | NOT expression
-  | expression AND expression
-  | expression OR expression
+  | NOT expression:expr {: RESULT = parser.checkBoolean( (Eval.Type) expr); :}
+  | expression:expr1 AND expression:expr2 {: RESULT = parser.checkBoolean( (Eval.Type) expr1, (Eval.Type) expr2); :}
+  | expression:expr1 OR expression:expr2 {: RESULT = parser.checkBoolean( (Eval.Type) expr1, (Eval.Type) expr2); :}
   | MINUS expression 
   | expression PLUS expression
   | expression MINUS expression
   | expression TIMES expression
   | expression DIV expression
-  | expression EQ expression
-  | expression NEQ expression
-  | expression GT expression
-  | expression LT expression
-  | expression GEQ expression 
-  | expression LEQ expression 
+  | expression:expr1 EQ expression:expr2 {: RESULT = parser.checkComparative( (Eval.Type) expr1, (Eval.Type) expr2); :}
+  | expression:expr1 NEQ expression:expr2 {: RESULT = parser.checkComparative( (Eval.Type) expr1, (Eval.Type) expr2); :}
+  | expression:expr1 GT expression:expr2 {: RESULT = parser.checkComparative( (Eval.Type) expr1, (Eval.Type) expr2); :}
+  | expression:expr1 LT expression:expr2 {: RESULT = parser.checkComparative( (Eval.Type) expr1, (Eval.Type) expr2); :}
+  | expression:expr1 GEQ expression:expr2 {: RESULT = parser.checkComparative( (Eval.Type) expr1, (Eval.Type) expr2); :}
+  | expression:expr1 LEQ expression:expr2 {: RESULT = parser.checkComparative( (Eval.Type) expr1, (Eval.Type) expr2); :}
   ;
