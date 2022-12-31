@@ -118,11 +118,24 @@ parser code {:
     }
 
     // Check if boolean expression
-    public void checkIfBoolean(Eval.Type type){
+    public Eval.Type checkIfBoolean(Eval.Type type){
       Eval.Type expectedType = Eval.Type.BOOLEAN;
       if(type != expectedType){
         Eval.emitTypeMismatchError(expectedType, type);
       }
+      return expectedType;
+    }
+    
+    // Check if boolean expression
+    public Eval.Type checkIfBoolean(Eval.Type type1, Eval.Type type2){
+      Eval.Type expectedType = Eval.Type.BOOLEAN;
+      if(type1 != expectedType){
+        Eval.emitTypeMismatchError(expectedType, type1);
+      }
+      if(type2 != expectedType){
+        Eval.emitTypeMismatchError(expectedType, type2);
+      }
+      return expectedType;
     }
 
     // Returns the type of an ID
@@ -131,10 +144,11 @@ parser code {:
     }
 
     // Check the type of two expressions match
-    public void checkMatchTypes(Eval.Type type1, Eval.Type type2){
-      if(type1 != type2){
+    public Eval.Type checkMatchTypes(Eval.Type type1, Eval.Type type2){
+      if(type1 != type2 && type1!= null && type2!=null){
         Eval.emitTypeMismatchError(type1, type2);
       }
+      return Eval.Type.BOOLEAN;
     }
 
 :}
@@ -257,11 +271,10 @@ cmd_decl ::=
 feature_decl ::= 
     FEATURE IDENT:id COLON type_decl:type EQ expression:expr  
     {:
-      parser.checkDuplicateFeature(id, (Eval.Type) type); 
-      System.out.println("feature_decl (type-expr): "+type+"-"+expr);  
-      if(expr != null){
+      if(expr != null && type != null){
         parser.checkMatchTypes((Eval.Type) type, (Eval.Type) expr);
       }
+      parser.checkDuplicateFeature(id, (Eval.Type) type); 
     :}
   ;
 
@@ -277,6 +290,7 @@ literal_expression ::=
 
 expression ::=
     literal_expression:expr {: RESULT = expr; :}
+  
   | IDENT:id 
     {:
       boolean declared = parser.checkDeclaredId(id); 
@@ -284,21 +298,27 @@ expression ::=
         RESULT = parser.getIdType(id);
       }
     :}
-  | OPEN_PAREN expression CLOSE_PAREN
+  
+  | OPEN_PAREN expression:expr CLOSE_PAREN {: RESULT = expr; :}
+  
   | IDENT OPEN_PAREN expression CLOSE_PAREN
+
   | IF expression THEN expression ELSE expression END
-  | NOT expression
-  | expression AND expression
-  | expression OR expression
-  | MINUS expression 
+
+  | NOT expression:expr {: RESULT = parser.checkIfBoolean((Eval.Type) expr); :}
+  | expression:expr1 AND expression:expr2 {: RESULT = parser.checkIfBoolean((Eval.Type) expr1, (Eval.Type) expr2); :}
+  | expression:expr1 OR expression:expr2 {: RESULT = parser.checkIfBoolean((Eval.Type) expr1, (Eval.Type) expr2); :}
+
+  | MINUS expression  
   | expression PLUS expression
   | expression MINUS expression
   | expression TIMES expression
   | expression DIV expression
-  | expression EQ expression
-  | expression NEQ expression
-  | expression GT expression
-  | expression LT expression
-  | expression GEQ expression 
-  | expression LEQ expression 
+  
+  | expression:expr1 EQ expression:expr2 {: RESULT = parser.checkMatchTypes((Eval.Type) expr1,(Eval.Type) expr2); :}
+  | expression:expr1 NEQ expression:expr2 {: RESULT = parser.checkMatchTypes((Eval.Type) expr1,(Eval.Type) expr2); :}
+  | expression:expr1 GT expression:expr2 {: RESULT = parser.checkMatchTypes((Eval.Type) expr1,(Eval.Type) expr2); :}
+  | expression:expr1 LT expression:expr2 {: RESULT = parser.checkMatchTypes((Eval.Type) expr1,(Eval.Type) expr2); :}
+  | expression:expr1 GEQ expression:expr2 {: RESULT = parser.checkMatchTypes((Eval.Type) expr1,(Eval.Type) expr2); :}
+  | expression:expr1 LEQ expression:expr2 {: RESULT = parser.checkMatchTypes((Eval.Type) expr1,(Eval.Type) expr2); :}
   ;
