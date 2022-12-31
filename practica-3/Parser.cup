@@ -13,148 +13,129 @@ parser code {:
     // COURSE INSTRUCTOR:
 
     // Add any attributes to the parser (if you need them) here
-    public static class Scope {
-      
-      private Stack<HashMap<String, Eval.Type>> scope;
+    public static class Scope{
+      // Blocks are stored in a stack, so each element are independent from
+      // other blocks. It's a way to control the scope of an element.
+      private Stack<HashMap<String, Eval.Type>> tokenStack;
 
+      // Constructor. Initialize atributes.
       public Scope(){
-        scope = new Stack<HashMap<String, Eval.Type>>();
+        tokenStack = new Stack();
       }
 
+      // Each time a new block comes we store it in the stack.
       public void init(){
         HashMap<String, Eval.Type> hm = new HashMap<String, Eval.Type>();
-        scope.push(hm);
+        tokenStack.push(hm);
       }
 
+      // Each time a block ends we delete the data related to it.
       public void finish(){
-        scope.pop();
+        tokenStack.pop();
       }
 
+      // Add an element to the hashmap of the current stack element.
       public void add(String elem, Eval.Type type){
-        scope.peek().put(elem, type);
+        tokenStack.peek().put(elem, type);
       }
 
+      // Check if an element exists in the current scope.
       public boolean contains(String elem){
-        return scope.peek().containsKey(elem);
+        return tokenStack.peek().containsKey(elem);
       }
 
-      public Eval.Type getType(String elem){
-        Eval.Type type = null;
-        if(contains(elem)){
-          type = scope.peek().get(elem);
-        }
-        return type;
+      // Get type of an elem
+      public Eval.Type getIdType(String id){
+        return tokenStack.peek().get(id);
       }
-
     }
-    
-    static Scope scope;
+
+    // Symbol table.
+    private static Scope table;
 
     // Add any code that you would like to execute before the parser begins
     // Here you can initialize any variables you require
     // You may need to use it to initalize the symbol table(s)
     public static void initParser() {
-      scope = new Scope();
-      scope.init();
+      table = new Scope();
+      table.init();
     }
 
     // Add any code that you would like to execute after the parser ends
     // There is no need to modify this function if you don't need it!
     public static void endParser() {
-      scope.finish();
+      table.finish();
     }
 
-    public static void initScope(){
-      scope.init();
+    // Initialize the scope.
+    public void initScope(){
+      table.init();
     }
-
-    public static void finishScope(){
-      scope.finish();
+    
+    // Finish the scope.
+    public void finishScope(){
+      table.finish();
     }
-
-    public static void checkDuplicateDataset(String datasetName){
-      if(scope.contains(datasetName)){
+    
+    // Check if a dataset is duplicated.
+    public void checkDuplicateDataset(String datasetName){
+      if(table.contains(datasetName)){
         Eval.emitDuplicateDatasetError(datasetName);
       } else {
         Eval.emitDatasetDecl(datasetName);
-        scope.add(datasetName, null);
+        table.add(datasetName, null);
       }
     }
 
-    public static void checkDuplicateColumn(String columnName, Eval.Type type){
-      if(scope.contains(columnName)){
-        Eval.emitDuplicateIdentError(columnName);
+    // Check if column is duplicated.
+    public void checkDuplicateColumn(String id, Eval.Type type){
+      if(table.contains(id)){
+        Eval.emitDuplicateIdentError(id);
       } else {
-        Eval.emitColumnDecl(columnName, type);
-        scope.add(columnName, type);
+        Eval.emitColumnDecl(id, type);
+        table.add(id, type);
       }
     }
-
-    public static void checkDuplicateFeature(String featureName, Eval.Type type){
-      if(scope.contains(featureName)){
-        Eval.emitDuplicateIdentError(featureName);
+    
+    // Check if feature is duplicated.
+    public void checkDuplicateFeature(String id, Eval.Type type){
+      if(table.contains(id)){
+        Eval.emitDuplicateIdentError(id);
       } else {
-        Eval.emitFeatureDecl(featureName, type);
-        scope.add(featureName, type);
+        Eval.emitFeatureDecl(id, type);
+        table.add(id, type);
       }
     }
 
-    public static boolean checkUndeclaredId(String id){
-      if(!scope.contains(id)){
-        Eval.emitUndeclaredIdentError(id);
-        return true;
-      } 
-      return false;
-    }
-
-    public static void checkIfBoolean(Eval.Type expr_type){
-      Eval.Type expr_expected = Eval.Type.BOOLEAN;
-      if(expr_type != expr_expected ){
-        Eval.emitTypeMismatchError(expr_expected, expr_type);
-      }
-    }
-
-    public static Eval.Type getType(String elem){
-      return scope.getType(elem);
-    }
-
-    public static boolean checkType(Eval.Type t1, Eval.Type t2){
+    // Check if the ID is declared or not.
+    public boolean checkDeclaredId(String id){
       boolean result = true;
-      if(t1 != t2){
+      if(!table.contains(id)){
+        Eval.emitUndeclaredIdentError(id);
         result = false;
-        Eval.emitTypeMismatchError(t1, t2);
       } 
       return result;
     }
 
-    public static Eval.Type checkComparative( Eval.Type expr1, Eval.Type expr2 ){
-      System.out.println("checkComparative:" + expr1 +" - "+ expr2);
-      if(expr1 != expr2){
-        Eval.emitTypeMismatchError(expr1, expr2);
+    // Check if boolean expression
+    public void checkIfBoolean(Eval.Type type){
+      Eval.Type expectedType = Eval.Type.BOOLEAN;
+      if(type != expectedType){
+        Eval.emitTypeMismatchError(expectedType, type);
       }
-      return Eval.Type.BOOLEAN;
     }
 
-    public static Eval.Type checkBoolean(Eval.Type expr1, Eval.Type expr2){
-      Eval.Type typeExpected = Eval.Type.BOOLEAN;
-      if(expr1 != typeExpected){
-        Eval.emitTypeMismatchError(expr1, typeExpected);
-      }
-      if(expr2 != typeExpected){
-        Eval.emitTypeMismatchError(expr2, typeExpected);
-      }
-      return typeExpected;
+    // Returns the type of an ID
+    public Eval.Type getIdType(String id){
+      return table.getIdType(id);
     }
 
-    public static Eval.Type checkBoolean(Eval.Type expr){
-      Eval.Type typeExpected = Eval.Type.BOOLEAN;
-      if(expr != typeExpected){
-        Eval.emitTypeMismatchError(expr, typeExpected);
+    // Check the type of two expressions match
+    public void checkMatchTypes(Eval.Type type1, Eval.Type type2){
+      if(type1 != type2){
+        Eval.emitTypeMismatchError(type1, type2);
       }
-      return typeExpected;
     }
-
-
 
 :}
 
@@ -188,7 +169,10 @@ dataset_list ::=
   ;
 
 dataset_decl ::= 
-    DATASET IDENT:id OPEN_KEY {: parser.initScope(); :} column_opt preparation_opt {: parser.finishScope(); :} CLOSE_KEY
+    DATASET IDENT:id OPEN_KEY 
+    {: parser.initScope(); :} 
+      column_opt preparation_opt 
+    {: parser.finishScope(); :} CLOSE_KEY
     {: parser.checkDuplicateDataset(id); :}
   ; 
 
@@ -203,20 +187,23 @@ column_list ::=
   ;
 
 column_decl ::=
-    COLUMN ident_list:idList COLON type_decl:type 
-    {: 
+    COLUMN ident_list:idList COLON type_decl:type
+    {:
       ArrayList list = (ArrayList) idList;
-      for ( Object obj : list){
-        String id = (String) obj;
-        parser.checkDuplicateColumn(id, (Eval.Type) type);
-      } 
+      for(Object id : list){
+        parser.checkDuplicateColumn((String) id, (Eval.Type) type);
+      }
     :}
-      
   ;
 
 ident_list ::=
     IDENT:id {: RESULT = new ArrayList(Arrays.asList(id)); :}
-  | ident_list:idList COMMA IDENT:id {: ArrayList list = (ArrayList) idList; list.add(id); RESULT = list; :}
+  | ident_list:idList COMMA IDENT:id 
+    {:  
+      ArrayList list = (ArrayList) idList;
+      list.add(id);
+      RESULT = list;
+    :}   
   ;
 
 type_decl ::=
@@ -258,24 +245,23 @@ feature_list ::=
 
 cmd_decl ::=
     DELETE IF expression:expr {: parser.checkIfBoolean((Eval.Type) expr); :}
-  | DELETE COLUMN ident_list:idList 
-    {: 
-      ArrayList list = (ArrayList) idList;   
-      for ( Object obj : list ){
-        String id = (String) obj;
-        parser.checkUndeclaredId(id);
-      }
-    :}
+  | DELETE COLUMN ident_list:idList
+  {:
+    ArrayList list = (ArrayList) idList;
+    for(Object id : list){
+      parser.checkDeclaredId((String) id);
+    }
+  :} 
   ;
 
 feature_decl ::= 
-    FEATURE IDENT:id COLON type_decl:type EQ expression:expr
-    
-    {: parser.checkDuplicateFeature(id.toString(), (Eval.Type) type);  
-       System.out.println("FEATURE_hector ("+id+"-"+type+"): "+ expr);
-       if(expr != null){
-         parser.checkType( (Eval.Type) type, (Eval.Type) expr );
-       }
+    FEATURE IDENT:id COLON type_decl:type EQ expression:expr  
+    {:
+      parser.checkDuplicateFeature(id, (Eval.Type) type); 
+      System.out.println("feature_decl (type-expr): "+type+"-"+expr);  
+      if(expr != null){
+        parser.checkMatchTypes((Eval.Type) type, (Eval.Type) expr);
+      }
     :}
   ;
 
@@ -291,22 +277,28 @@ literal_expression ::=
 
 expression ::=
     literal_expression:expr {: RESULT = expr; :}
-  | IDENT:id {: boolean undeclared = parser.checkUndeclaredId(id.toString()); if(!undeclared){ RESULT = parser.getType(id.toString()); } :}
-  | OPEN_PAREN expression:expr CLOSE_PAREN {: RESULT = expr; :}
+  | IDENT:id 
+    {:
+      boolean declared = parser.checkDeclaredId(id); 
+      if(declared){
+        RESULT = parser.getIdType(id);
+      }
+    :}
+  | OPEN_PAREN expression CLOSE_PAREN
   | IDENT OPEN_PAREN expression CLOSE_PAREN
   | IF expression THEN expression ELSE expression END
-  | NOT expression:expr {: RESULT = parser.checkBoolean( (Eval.Type) expr); :}
-  | expression:expr1 AND expression:expr2 {: RESULT = parser.checkBoolean( (Eval.Type) expr1, (Eval.Type) expr2); :}
-  | expression:expr1 OR expression:expr2 {: RESULT = parser.checkBoolean( (Eval.Type) expr1, (Eval.Type) expr2); :}
+  | NOT expression
+  | expression AND expression
+  | expression OR expression
   | MINUS expression 
   | expression PLUS expression
   | expression MINUS expression
   | expression TIMES expression
   | expression DIV expression
-  | expression:expr1 EQ expression:expr2 {: RESULT = parser.checkComparative( (Eval.Type) expr1, (Eval.Type) expr2); :}
-  | expression:expr1 NEQ expression:expr2 {: RESULT = parser.checkComparative( (Eval.Type) expr1, (Eval.Type) expr2); :}
-  | expression:expr1 GT expression:expr2 {: RESULT = parser.checkComparative( (Eval.Type) expr1, (Eval.Type) expr2); :}
-  | expression:expr1 LT expression:expr2 {: RESULT = parser.checkComparative( (Eval.Type) expr1, (Eval.Type) expr2); :}
-  | expression:expr1 GEQ expression:expr2 {: RESULT = parser.checkComparative( (Eval.Type) expr1, (Eval.Type) expr2); :}
-  | expression:expr1 LEQ expression:expr2 {: RESULT = parser.checkComparative( (Eval.Type) expr1, (Eval.Type) expr2); :}
+  | expression EQ expression
+  | expression NEQ expression
+  | expression GT expression
+  | expression LT expression
+  | expression GEQ expression 
+  | expression LEQ expression 
   ;
