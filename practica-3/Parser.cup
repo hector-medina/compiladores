@@ -151,6 +151,66 @@ parser code {:
       return Eval.Type.BOOLEAN;
     }
 
+    // Check if it's INT or FLOAT
+    public static boolean isIntFloat(Eval.Type type){
+      boolean result = false;
+      if(Eval.Type.INT == type || Eval.Type.FLOAT == type){
+        result = true;
+      }
+      return result;
+    }
+    // Check if its an arithmetic op
+    public Eval.Type checkIfArith(Eval.Type type1, Eval.Type type2){
+      if(!Parser.isIntFloat(type1)){
+        Eval.emitTypeMismatchError(Eval.Type.NUMERIC, type1);
+      }
+      if(!Parser.isIntFloat(type2)){
+        Eval.emitTypeMismatchError(Eval.Type.NUMERIC, type2);
+      }
+      if(type1 != type2 && type1!= null && type2!=null){
+        Eval.emitTypeMismatchError(type1, type2);
+        return Eval.Type.BOOLEAN;
+      }
+      return type1;
+    }
+
+    // Check if its an arithmetic op unary
+    public Eval.Type checkIfArith(Eval.Type type1){
+      if(!Parser.isIntFloat(type1)){
+        Eval.emitTypeMismatchError(Eval.Type.NUMERIC, type1);
+        return Eval.Type.BOOLEAN;
+      }
+      return type1;
+    }
+
+    // Check if they are comparable.
+    public Eval.Type checkIfComparable(Eval.Type type1, Eval.Type type2){
+      Eval.Type expectedType = Eval.Type.BOOLEAN;
+      if(type1 == expectedType){
+			  Eval.emitTypeMismatchError(Eval.Type.COMPARABLE, type1);
+      }
+      if(type2 == expectedType){
+			  Eval.emitTypeMismatchError(Eval.Type.COMPARABLE, type2);
+      }
+      if (type1 != type2) {
+			Eval.emitTypeMismatchError(type1, type2);
+		  }
+      return expectedType;
+    }
+
+    // Check conditional statement
+    public Eval.Type checkConditionalStatement(Eval.Type type1, Eval.Type type2, Eval.Type type3){
+      if (type1 != Eval.Type.BOOLEAN) {
+        Eval.emitTypeMismatchError(Eval.Type.BOOLEAN, type1);
+      }
+      if (type2 != type3) {
+        Eval.emitTypeMismatchError(type2, type3);
+        return Eval.Type.INT;
+      } else {
+        return type2;
+      }
+    }
+
 :}
 
 terminal DATASET, PREPARATION, COLUMN, FEATURE, DELETE, BOOLEAN, INT, FLOAT, STRING, DATE;
@@ -301,24 +361,27 @@ expression ::=
   
   | OPEN_PAREN expression:expr CLOSE_PAREN {: RESULT = expr; :}
   
-  | IDENT OPEN_PAREN expression CLOSE_PAREN
+  | IDENT OPEN_PAREN expression CLOSE_PAREN {: RESULT = Eval.Type.INT; :}
 
-  | IF expression THEN expression ELSE expression END
+  | IF expression:expr1 THEN expression:expr2 ELSE expression:expr3 END
+  {:
+    RESULT = parser.checkConditionalStatement((Eval.Type) expr1,(Eval.Type) expr2,(Eval.Type) expr3);
+  :}
 
   | NOT expression:expr {: RESULT = parser.checkIfBoolean((Eval.Type) expr); :}
   | expression:expr1 AND expression:expr2 {: RESULT = parser.checkIfBoolean((Eval.Type) expr1, (Eval.Type) expr2); :}
   | expression:expr1 OR expression:expr2 {: RESULT = parser.checkIfBoolean((Eval.Type) expr1, (Eval.Type) expr2); :}
 
-  | MINUS expression  
-  | expression PLUS expression
-  | expression MINUS expression
-  | expression TIMES expression
-  | expression DIV expression
+  | MINUS expression:expr {:  RESULT = parser.checkIfArith((Eval.Type) expr);:}
+  | expression:expr1 PLUS expression:expr2 {:  RESULT = parser.checkIfArith((Eval.Type) expr1, (Eval.Type) expr2); :}
+  | expression:expr1 MINUS expression:expr2 {:  RESULT = parser.checkIfArith((Eval.Type) expr1, (Eval.Type) expr2); :}
+  | expression:expr1 TIMES expression:expr2 {:  RESULT = parser.checkIfArith((Eval.Type) expr1, (Eval.Type) expr2); :}
+  | expression:expr1 DIV expression:expr2 {:  RESULT = parser.checkIfArith((Eval.Type) expr1, (Eval.Type) expr2); :}
   
   | expression:expr1 EQ expression:expr2 {: RESULT = parser.checkMatchTypes((Eval.Type) expr1,(Eval.Type) expr2); :}
   | expression:expr1 NEQ expression:expr2 {: RESULT = parser.checkMatchTypes((Eval.Type) expr1,(Eval.Type) expr2); :}
-  | expression:expr1 GT expression:expr2 {: RESULT = parser.checkMatchTypes((Eval.Type) expr1,(Eval.Type) expr2); :}
-  | expression:expr1 LT expression:expr2 {: RESULT = parser.checkMatchTypes((Eval.Type) expr1,(Eval.Type) expr2); :}
-  | expression:expr1 GEQ expression:expr2 {: RESULT = parser.checkMatchTypes((Eval.Type) expr1,(Eval.Type) expr2); :}
-  | expression:expr1 LEQ expression:expr2 {: RESULT = parser.checkMatchTypes((Eval.Type) expr1,(Eval.Type) expr2); :}
+  | expression:expr1 GT expression:expr2 {: RESULT = parser.checkIfComparable((Eval.Type) expr1,(Eval.Type) expr2); :}
+  | expression:expr1 LT expression:expr2 {: RESULT = parser.checkIfComparable((Eval.Type) expr1,(Eval.Type) expr2); :}
+  | expression:expr1 GEQ expression:expr2 {: RESULT = parser.checkIfComparable((Eval.Type) expr1,(Eval.Type) expr2); :}
+  | expression:expr1 LEQ expression:expr2 {: RESULT = parser.checkIfComparable((Eval.Type) expr1,(Eval.Type) expr2); :}
   ;
